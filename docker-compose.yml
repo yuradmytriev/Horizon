@@ -21,3 +21,16 @@ services:
     # Run daily at 8:00 AM UTC (adjust as needed)
     # For one-time run, use: docker compose run --rm horizon
     command: ["--hours", "24"]
+
+  # Local read-only web viewer for data/summaries: docker compose up viewer
+  viewer:
+    build: .
+    entrypoint: ["/app/.venv/bin/python", "-m", "src.viewer"]
+    volumes:
+      - ./data:/app/data:ro
+    ports:
+      - "127.0.0.1:8000:8000"  # localhost only, not reachable from your network
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
