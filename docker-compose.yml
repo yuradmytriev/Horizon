@@ -11,6 +11,13 @@ services:
     environment:
       - TZ=UTC
     restart: "no"
+    # Hardening: read-only code, no root powers, no privilege escalation.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     # Run daily at 8:00 AM UTC (adjust as needed)
     # For one-time run, use: docker compose run --rm horizon
     command: ["--hours", "24"]

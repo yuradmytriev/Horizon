@@ -1,11 +1,12 @@
 # Use Python 3.11 slim image
-FROM python:3.11-slim
+# Pinned by digest: a re-tagged upstream image can't change what gets built.
+FROM python:3.11-slim@sha256:61e01f72680f86a5279ad510818ab7b2ee9f049822589d4e34e33e044360356c
 
 # Set working directory
 WORKDIR /app
 
 # Install uv for faster dependency management
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.10@sha256:a3ea1357342c1a4bf9a0c53a3deb1b55379aefa037338d8113d5771efa01774f /uv /usr/local/bin/uv
 
 # Copy project files
 COPY pyproject.toml uv.lock README.md ./
@@ -30,16 +31,18 @@ RUN set -eu; \
     uv sync --frozen --no-dev "$@"
 
 # Runtime data is mounted here; keep the image and process unprivileged.
+# Only data/ is writable by the runtime user; app code stays root-owned.
 RUN useradd --create-home --uid 10001 horizon \
-    && chown -R horizon:horizon /app
+    && mkdir -p /app/data && chown -R horizon:horizon /app/data
 
 # Create volume mount points
 VOLUME ["/app/data"]
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 USER horizon
 
 # Run the application
-ENTRYPOINT ["uv", "run", "horizon"]
+# Run the venv binary directly: `uv run` could re-resolve and download packages at runtime.
+ENTRYPOINT ["/app/.venv/bin/horizon"]
 CMD []
